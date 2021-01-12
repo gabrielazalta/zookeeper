@@ -1,14 +1,12 @@
-const express = require('express');
-const { animals } = require('./data/animals');
 const fs = require('fs');
 const path = require('path');
+const express = require('express');
+const { animals } = require('./data/animals');
 
 const PORT = process.env.PORT || 3001;
 const app = express();
 
-// parse incoming string or array data
-app.use(express.urlencoded({ extend:true }));
-// parse incoming JSON data
+app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
 function filterByQuery(query, animalsArray) {
@@ -43,17 +41,9 @@ function findById(id, animalsArray) {
   return result;
 }
 
-app.get('/api/animals', (req, res) => {
-  let results = animals;
-  if (req.query) {
-    results = filterByQuery(req.query, results);
-  }
-  res.json(results);
-});
-
-function createNewAnimal (body, animalsArray) {
+function createNewAnimal(body, animalsArray) {
   const animal = body;
-  animalsArray.push(animal);
+  animals.push(animal);
   fs.writeFileSync(
     path.join(__dirname, './data/animals.json'),
     JSON.stringify({ animals: animalsArray }, null, 2)
@@ -61,20 +51,29 @@ function createNewAnimal (body, animalsArray) {
   return animal;
 }
 
-function validateAnimal (animal) {
-  if (!animal.name || typeof animal.name !=='string') {
+function validateAnimal(animal) {
+  if (!animal.name || typeof animal.name !== 'string') {
     return false;
   }
-  if (!animal.species || typeof animal.species !=='string') {
+  if (!animal.species || typeof animal.species !== 'string') {
     return false;
   }
-  if (!animal.diet || typeof animal.diet !=='string') {
+  if (!animal.diet || typeof animal.diet !== 'string') {
     return false;
   }
-  if (!animal.personalityTraits || typeof animal.personalityTraits !=='string') {
+  if (!animal.personalityTraits || !Array.isArray(animal.personalityTraits)) {
     return false;
   }
+  return true;
 }
+
+app.get('/api/animals', (req, res) => {
+  let results = animals;
+  if (req.query) {
+    results = filterByQuery(req.query, results);
+  }
+  res.json(results);
+});
 
 app.get('/api/animals/:id', (req, res) => {
   const result = findById(req.params.id, animals);
@@ -89,16 +88,13 @@ app.post('/api/animals', (req, res) => {
   // set id based on what the next index of the array will be
   req.body.id = animals.length.toString();
 
-  // if any data in req.body is incorrect, send 400 error back
   if (!validateAnimal(req.body)) {
     res.status(400).send('The animal is not properly formatted.');
   } else {
-    // add animal to json file and animals array in this function
     const animal = createNewAnimal(req.body, animals);
-    res.json(req.body);
+    res.json(animal);
   }
 });
-
 app.listen(PORT, () => {
   console.log(`API server now on port ${PORT}!`);
 });
